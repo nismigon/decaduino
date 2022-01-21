@@ -8,6 +8,8 @@
 
 #define MAX_FRAME_LEN 120
 #define GROUP_NUMBER 2
+#define MAX_RETRIES 3
+#define TIMEOUT 100
 uint8_t txData[MAX_FRAME_LEN];
 uint16_t txLen;
 uint8_t rxData[MAX_FRAME_LEN];
@@ -27,6 +29,7 @@ void setup()
     Serial.println("decaduino init failed");
     while(1) { digitalWrite(13, HIGH); delay(50); digitalWrite(13, LOW); delay(50); }
   }
+  decaduino.setChannel(GROUP_NUMBER);
   // Set RX buffer and enable RX
   decaduino.setRxBuffer(rxData, &rxLen);
 }
@@ -34,20 +37,34 @@ void setup()
 
 void loop()
 {
-  // make dummy data, send it and wait the end of the transmission.
-  digitalWrite(13, HIGH);
-  // affectation of the group number
+  unsigned long emission = millis(); // packet emission time
+  unsigned int transmission_number = 0;
+  
+  // creation of the packet
   txData[0] = GROUP_NUMBER;
   for (int i=1; i<MAX_FRAME_LEN; i++) {
     txData[i] = 1;
   }
-  decaduino.pdDataRequest(txData, MAX_FRAME_LEN);
-  while ( !decaduino.hasTxSucceeded() );
-  Serial.println("TX sended to the receiver");
-  digitalWrite(13, LOW);
+
+  // send packet
+  send_packet(txData, transmission_number);
+  transmission_number++;
+
+  // ack
   bool receivedACK = false;
   decaduino.plmeRxEnableRequest();
   while (!receivedACK) {
+    // Verify timeout
+    if (millis() - emission > TIMEOUT * transmission_number) {
+      if (transmission_number >= MAX_RETRIES) {
+        Serial.println("Maximum retransmission have been reached, pass to next packet");
+        break;
+      } else {
+        send_packet(txData, transmission_number);
+        transmission_number++; 
+      }
+    }
+    // Verify received frame
     if (decaduino.rxFrameAvailable()) {
       if (rxData[0] == GROUP_NUMBER) {
           Serial.println("ACK received from the receiver");
@@ -57,8 +74,20 @@ void loop()
       }
     }
   }
-  // wait 1 second 
-  delay(1000);
+  // wait 1 second
+  if (emission + 1000 - millis() > 0) {
+     delay(emission + 1000 - millis());
+  }
+}
+
+void send_packet(uint8_t *packet, int transmission_number) {
+  decaduino.plmeRxDisableRequest();
+  decaduino.pdDataRequest(packet, MAX_FRAME_LEN);
+  while ( !decaduino.hasTxSucceeded() );
+  Serial.print("Transmission ");
+  Serial.print(transmission_number);
+  Serial.println(" : TX sended to the receiver");
+  decaduino.plmeRxEnableRequest();
 }
 
 
