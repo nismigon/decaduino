@@ -30,18 +30,21 @@ void setup()
 void loop()
 {
   // If a message has been received, print it and re-enable receiver
-  if ( decaduino.rxFrameAvailable() && rxData[0] == GROUP_NUMBER) {
-    // Get the encoded timestamp contained in the packet
-    uint8_t encodedTimestamp[8];
-    for (int i = 0; i < 8; i++) {
-        encodedTimestamp[i] = rxData[i+1];
+  if ( decaduino.rxFrameAvailable()) {
+    if (rxData[0] == GROUP_NUMBER) {
+      // Get the encoded timestamp contained in the packet
+      uint8_t encodedTimestamp[8];
+      for (int i = 0; i < 8; i++) {
+          encodedTimestamp[i] = rxData[i+1];
+      }
+      // Decode the timestamp
+      uint64_t masterTimestamp = decaduino.decodeUint64(encodedTimestamp);
+      // Offset calculation
+      uint64_t offset = masterTimestamp - getSystemTimeCounter();
+      // Show in the serial port the result
+      Serial.println("Offset : %d", offset);
     }
-    // Decode the timestamp
-    uint64_t masterTimestamp = decaduino.decodeUint64(encodedTimestamp);
-    // Offset calculation
-    uint64_t offset = masterTimestamp - getSystemTimeCounter();
-    // Show in the serial port the result
-    Serial.println("Offset : %d", offset);
+    decaduino.plmeRxEnableRequest();
   }
 }
 
