@@ -1,11 +1,3 @@
-// DecaDuinoTWR_client
-// A simple implementation of the TWR protocol, client side
-// Contributors: Adrien van den Bossche, Réjane Dalcé, Ibrahim Fofana, Robert Try, Thierry Val
-// This sketch is a part of the DecaDuino Project - please refer to the DecaDuino LICENCE file for licensing details
-// This sketch implements the skew correction published in "Nezo Ibrahim Fofana, Adrien van den Bossche, Réjane
-// Dalcé, Thierry Val, "An Original Correction Method for Indoor Ultra Wide Band Ranging-based Localisation System"
-// https://arxiv.org/pdf/1603.06736.pdf
-
 #include <SPI.h>
 #include <DecaDuino.h>
 
@@ -93,6 +85,7 @@ void loop()
     case STATE_WAIT:
       if(decaduino.rxFrameAvailable()) {
         if(rxData[0] == GROUP_NUMBER) {
+          // Show data and results
           Serial.println("STATE : Wait");
           Serial.println("\tFrame received, extracting information...");
           t2 = decaduino.decodeUint64(&rxData[1]);
@@ -112,6 +105,7 @@ void loop()
           }
           state = STATE_IDLE;
         }
+        // Timeout expire, reeemission
         else {
           if (timeout + 1000 < millis()) {
             Serial.println("\tFrame received is not correct... Reemission...");
@@ -122,7 +116,7 @@ void loop()
           }
         }
       }
-      break; 
+      break;
     default:
       state = STATE_IDLE;
       break;
