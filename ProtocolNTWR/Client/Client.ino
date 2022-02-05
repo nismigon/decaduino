@@ -1,11 +1,3 @@
-// DecaDuinoTWR_client
-// A simple implementation of the TWR protocol, client side
-// Contributors: Adrien van den Bossche, Réjane Dalcé, Ibrahim Fofana, Robert Try, Thierry Val
-// This sketch is a part of the DecaDuino Project - please refer to the DecaDuino LICENCE file for licensing details
-// This sketch implements the skew correction published in "Nezo Ibrahim Fofana, Adrien van den Bossche, Réjane
-// Dalcé, Thierry Val, "An Original Correction Method for Indoor Ultra Wide Band Ranging-based Localisation System"
-// https://arxiv.org/pdf/1603.06736.pdf
-
 #include <SPI.h>
 #include <DecaDuino.h>
 
@@ -92,7 +84,7 @@ void loop()
       Serial.println("\tSuccessfully send packet");
       // Save the TX value
       for (int i = 0; i < NODE_NUMBER; i++) {
-        times[i].t1 = decaduino.getLastTxTimestamp(); 
+        times[i].t1 = decaduino.getLastTxTimestamp();
       }
       timeout = millis();
       // Next state
@@ -102,14 +94,17 @@ void loop()
     case STATE_WAIT:
       if(decaduino.rxFrameAvailable()) {
         if(rxData[0] == GROUP_NUMBER) {
+          // Get node number
           int node = rxData[1];
           Serial.println("STATE : Wait");
           Serial.println("\tFrame received, extracting information...");
+          // Recuperation of the times
           times[node].t2 = decaduino.decodeUint64(&rxData[2]);
           times[node].t3 = decaduino.decodeUint64(&rxData[10]);
           times[node].t4 = decaduino.getLastRxTimestamp();
           uint32_t tof = (((times[node].t4 - times[node].t1) & mask) - ((times[node].t3 - times[node].t2) & mask))/2;
           float distance = tof*RANGING_UNIT;
+          // Print data to Serial
           Serial.print("\tNode ");
           Serial.print(node);
           Serial.print(" - Time of flight : ");
@@ -134,7 +129,7 @@ void loop()
           }
         }
       }
-      break; 
+      break;
     default:
       state = STATE_IDLE;
       break;
